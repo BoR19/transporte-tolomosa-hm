@@ -1,0 +1,103 @@
+{
+  "entities": {
+    "UbicacionViva": {
+      "title": "UbicacionViva",
+      "description": "Paquete mínimo de ubicación GPS en tiempo real (< 200 bytes) enviado por cada micro en servicio.",
+      "type": "object",
+      "properties": {
+        "lat": { "type": "number", "description": "Latitud GPS del micro" },
+        "lng": { "type": "number", "description": "Longitud GPS del micro" },
+        "enServicio": { "type": "boolean", "description": "Indica si el micro está en viaje activo" },
+        "ramal": { "type": "integer", "description": "Índice de ramal (0=Tolomosa, 1=Churquis, 2=Pampa Redonda)" },
+        "direccion": {
+          "type": "string",
+          "enum": ["campesino", "ramales"],
+          "description": "Sentido actual de recorrido"
+        },
+        "actualizadoEn": { "type": "integer", "description": "Marca de tiempo Unix en milisegundos" }
+      },
+      "required": ["lat", "lng", "enServicio", "ramal", "direccion", "actualizadoEn"]
+    },
+    "Chofer": {
+      "title": "Chofer",
+      "description": "Conductor registrado y vinculado a un micro de la flota.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "integer", "description": "Identificador numérico del chofer" },
+        "name": { "type": "string", "minLength": 3, "maxLength": 80, "description": "Nombre completo del chofer" },
+        "phone": { "type": "string", "maxLength": 20, "description": "Número de teléfono" },
+        "pin": {
+          "type": "string",
+          "minLength": 4,
+          "maxLength": 4,
+          "pattern": "^[0-9]{4}$",
+          "description": "PIN numérico de 4 dígitos"
+        },
+        "micro": { "type": "integer", "description": "Número de micro asignado (1-36) o null" },
+        "ramal": { "type": "integer", "description": "Índice de ramal habitual (0-2)" },
+        "on": { "type": "boolean", "description": "Acceso y disponibilidad activa" },
+        "cap": { "type": "string", "minLength": 4, "maxLength": 20, "description": "Color de gorra en avatar" }
+      },
+      "required": ["id", "name", "phone", "pin", "micro", "ramal", "on", "cap"]
+    },
+    "Vehiculo": {
+      "title": "Vehiculo",
+      "description": "Micro registrado en la flota de la cooperativa.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "integer", "description": "Identificador numérico del vehículo" },
+        "numero": { "type": "integer", "description": "Número visible del micro (1-36)" },
+        "ramal": { "type": "integer", "description": "Índice de ramal habitual (0-2)" },
+        "activo": { "type": "boolean", "description": "Indica si el micro está habilitado en flota" }
+      },
+      "required": ["id", "numero", "ramal", "activo"]
+    },
+    "Jornada": {
+      "title": "Jornada",
+      "description": "Registro histórico de un viaje completado por un chofer.",
+      "type": "object",
+      "properties": {
+        "k": { "type": "integer", "description": "Identificador único de jornada (timestamp de cierre)" },
+        "name": { "type": "string", "minLength": 1, "maxLength": 80, "description": "Nombre del chofer" },
+        "micro": { "type": "integer", "description": "Número de micro" },
+        "ramal": { "type": "integer", "description": "Índice de ramal" },
+        "dir": { "type": "string", "enum": ["campesino", "ramales"], "description": "Dirección del viaje" },
+        "start": { "type": "integer", "description": "Inicio en ms" },
+        "end": { "type": "integer", "description": "Fin en ms" }
+      },
+      "required": ["k", "name", "micro", "ramal", "dir", "start", "end"]
+    },
+    "ConfigApp": {
+      "title": "ConfigApp",
+      "description": "Configuración global de la cooperativa.",
+      "type": "object",
+      "properties": {
+        "coop": { "type": "string", "minLength": 3, "maxLength": 80, "description": "Nombre de la cooperativa" },
+        "notif": { "type": "boolean", "description": "Estado global de notificaciones" }
+      },
+      "required": ["coop", "notif"]
+    }
+  },
+  "firestore": {
+    "/ubicaciones_vivas/{driverId}": {
+      "schema": { "$ref": "#/entities/UbicacionViva" },
+      "description": "Coordenadas en vivo por chofer (< 200 bytes por escritura)."
+    },
+    "/choferes/{driverId}": {
+      "schema": { "$ref": "#/entities/Chofer" },
+      "description": "Choferes registrados sincronizados entre Administrador, Chofer y Pasajero."
+    },
+    "/vehiculos/{vehiculoId}": {
+      "schema": { "$ref": "#/entities/Vehiculo" },
+      "description": "Flota de micros sincronizada en tiempo real."
+    },
+    "/jornadas/{jornadaId}": {
+      "schema": { "$ref": "#/entities/Jornada" },
+      "description": "Historial de viajes terminados."
+    },
+    "/config/{configId}": {
+      "schema": { "$ref": "#/entities/ConfigApp" },
+      "description": "Ajustes generales de la cooperativa (documento app)."
+    }
+  }
+}

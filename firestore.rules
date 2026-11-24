@@ -1,0 +1,128 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidUbicacion(data) {
+      return data.keys().hasAll(['lat', 'lng', 'enServicio', 'ramal', 'direccion', 'actualizadoEn'])
+        && data.keys().hasOnly(['lat', 'lng', 'enServicio', 'ramal', 'direccion', 'actualizadoEn'])
+        && (data.lat is int || data.lat is float) && data.lat >= -90 && data.lat <= 90
+        && (data.lng is int || data.lng is float) && data.lng >= -180 && data.lng <= 180
+        && data.enServicio is bool
+        && data.ramal is int && data.ramal >= 0 && data.ramal <= 2
+        && data.direccion is string && data.direccion in ['campesino', 'ramales']
+        && data.actualizadoEn is int && data.actualizadoEn > 0;
+    }
+
+    function isValidChofer(data) {
+      return data.keys().hasAll(['id', 'name', 'phone', 'pin', 'micro', 'ramal', 'on', 'cap'])
+        && data.keys().hasOnly(['id', 'name', 'phone', 'pin', 'micro', 'ramal', 'on', 'cap'])
+        && data.id is int && data.id > 0
+        && data.name is string && data.name.size() >= 3 && data.name.size() <= 80
+        && data.phone is string && data.phone.size() <= 20
+        && data.pin is string && data.pin.size() == 4 && data.pin.matches('^[0-9]{4}$')
+        && (data.micro == null || (data.micro is int && data.micro >= 1 && data.micro <= 36))
+        && data.ramal is int && data.ramal >= 0 && data.ramal <= 2
+        && data.on is bool
+        && data.cap is string && data.cap.size() >= 4 && data.cap.size() <= 20;
+    }
+
+    function isValidVehiculo(data) {
+      return data.keys().hasAll(['id', 'numero', 'ramal', 'activo'])
+        && data.keys().hasOnly(['id', 'numero', 'ramal', 'activo'])
+        && data.id is int && data.id > 0
+        && data.numero is int && data.numero >= 1 && data.numero <= 36
+        && data.ramal is int && data.ramal >= 0 && data.ramal <= 2
+        && data.activo is bool;
+    }
+
+    function isValidJornada(data) {
+      return data.keys().hasAll(['k', 'name', 'micro', 'ramal', 'dir', 'start', 'end'])
+        && data.keys().hasOnly(['k', 'name', 'micro', 'ramal', 'dir', 'start', 'end'])
+        && data.k is int && data.k > 0
+        && data.name is string && data.name.size() >= 1 && data.name.size() <= 80
+        && data.micro is int && data.micro >= 1 && data.micro <= 36
+        && data.ramal is int && data.ramal >= 0 && data.ramal <= 2
+        && data.dir is string && data.dir in ['campesino', 'ramales']
+        && data.start is int && data.start > 0
+        && data.end is int && data.end >= data.start;
+    }
+
+    function isValidConfig(data) {
+      return data.keys().hasAll(['coop', 'notif'])
+        && data.keys().hasOnly(['coop', 'notif'])
+        && data.coop is string && data.coop.size() >= 3 && data.coop.size() <= 80
+        && data.notif is bool;
+    }
+
+    match /ubicaciones_vivas/{driverId} {
+      allow get: if isValidId(driverId);
+      allow list: if request.query.limit != null && request.query.limit <= 200;
+      allow create: if isValidId(driverId) && isValidUbicacion(incoming());
+      allow update: if isValidId(driverId)
+        && isValidUbicacion(incoming())
+        && incoming().diff(existing()).affectedKeys().hasOnly(['lat', 'lng', 'enServicio', 'ramal', 'direccion', 'actualizadoEn']);
+      allow delete: if false;
+    }
+
+    match /choferes/{driverId} {
+      allow get: if isValidId(driverId);
+      allow list: if request.query.limit != null && request.query.limit <= 200;
+      allow create: if isValidId(driverId) && isValidChofer(incoming());
+      allow update: if isValidId(driverId)
+        && isValidChofer(incoming())
+        && incoming().id == existing().id
+        && incoming().diff(existing()).affectedKeys().hasOnly(['name', 'phone', 'pin', 'micro', 'ramal', 'on', 'cap']);
+      allow delete: if isValidId(driverId);
+    }
+
+    match /vehiculos/{vehiculoId} {
+      allow get: if isValidId(vehiculoId);
+      allow list: if request.query.limit != null && request.query.limit <= 200;
+      allow create: if isValidId(vehiculoId) && isValidVehiculo(incoming());
+      allow update: if isValidId(vehiculoId)
+        && isValidVehiculo(incoming())
+        && incoming().id == existing().id
+        && incoming().diff(existing()).affectedKeys().hasOnly(['numero', 'ramal', 'activo']);
+      allow delete: if isValidId(vehiculoId);
+    }
+
+    match /jornadas/{jornadaId} {
+      allow get: if isValidId(jornadaId);
+      allow list: if request.query.limit != null && request.query.limit <= 500;
+      allow create: if isValidId(jornadaId) && isValidJornada(incoming());
+      allow update: if false;
+      allow delete: if isValidId(jornadaId);
+    }
+
+    match /config/{configId} {
+      allow get: if configId == 'app';
+      allow list: if false;
+      allow create: if configId == 'app' && isValidConfig(incoming());
+      allow update: if configId == 'app'
+        && isValidConfig(incoming())
+        && incoming().diff(existing()).affectedKeys().hasOnly(['coop', 'notif']);
+      allow delete: if false;
+    }
+
+    match /test/{docId} {
+      allow get: if docId == 'connection';
+      allow list, write: if false;
+    }
+  }
+}

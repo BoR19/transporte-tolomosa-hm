@@ -1,0 +1,54 @@
+@import "tailwindcss";
+
+:root {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: #eaf1fd;
+  font-family: 'Nunito Sans', system-ui, sans-serif;
+}
+
+.tolomosa-leaflet .leaflet-container {
+  font-family: 'Nunito Sans', system-ui, sans-serif;
+  background: #d8e5c8;
+}
+
+.tolomosa-leaflet .leaflet-div-icon {
+  background: transparent;
+  border: none;
+}
+
+.tolomosa-leaflet .leaflet-marker-icon.tolomosa-bus-icon {
+  transition: transform 0.9s linear;
+}
+
+.tolomosa-leaflet .leaflet-popup-content-wrapper {
+  border-radius: 14px;
+  box-shadow: 0 8px 24px rgba(17, 32, 63, 0.18);
+  padding: 2px;
+}
+
+.tolomosa-leaflet .leaflet-popup-content {
+  margin: 10px 12px;
+  font-family: 'Nunito Sans', system-ui, sans-serif;
+}
+
+.tolomosa-leaflet .leaflet-control-zoom {
+  border: 1px solid #d3e0f4 !important;
+  border-radius: 12px !important;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(17, 32, 63, 0.14) !important;
+}
+
+.tolomosa-leaflet .leaflet-control-zoom a {
+  color: #11203f !important;
+  font-weight: 800;
+}
+
+@media (max-width: 767px) {
+  .tolomosa-leaflet .leaflet-bottom {
+    bottom: 82px;
+  }
+}

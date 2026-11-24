@@ -1,0 +1,529 @@
+<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><meta name="color-scheme" content="light"><title>Transporte Tolomosa – réplica del diseño</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;background:#e3e9f3}</style>
+<script src="https://cdn.tailwindcss.com/3.4.17"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.3.1/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script></head>
+<body><div id="root"></div><script type="text/babel">
+const { useState, useEffect } = React;
+
+/*
+ * Tokens extraídos de la imagen
+ * azul app      #0b4bbf   (cabecera, botones primarios, iconos)
+ * azul claro    #e9f1fd   (fondos de tarjeta / info)   borde #d3e0f4
+ * violeta admin #5b3db0
+ * verde         #16a34a   (Comenzar, Disponible)   chip claro #c9f2d3 / texto #1a7a3a
+ * tinta         #11203f   (títulos)   gris #5f6f8a   gris inactivo #e3e7ee
+ * Tipografía: Nunito Sans 400/600/700/800. Radios: 12 campos · 16 botones · 24 hojas · 46 teléfono
+ * Espaciado: rejilla de 4px, margen lateral de pantalla 16px
+ */
+
+const Svg = ({ children, className = "w-6 h-6", sw = 2.2 }) => (
+  <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{children}</svg>
+);
+const F = { fill: "currentColor", stroke: "none" };
+const W = { fill: "var(--win,#fff)", stroke: "none" };
+const Ic = {
+  pin: (c) => <Svg className={c}><path {...F} d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 0 1 16 0z" /><circle cx="12" cy="10" r="3" fill="#fff" stroke="none" /></Svg>,
+  bus: (c) => <Svg className={c}><rect {...F} x="4" y="3" width="16" height="15" rx="3.5" /><rect x="6.5" y="5.5" width="11" height="6" rx="1.3" style={{ fill: "var(--win,#fff)" }} stroke="none" /><circle {...F} cx="8" cy="20" r="1.7" /><circle {...F} cx="16" cy="20" r="1.7" /><circle cx="8" cy="14.5" r="1" style={{ fill: "var(--win,#fff)" }} stroke="none" /><circle cx="16" cy="14.5" r="1" style={{ fill: "var(--win,#fff)" }} stroke="none" /></Svg>,
+  wheel: (c) => <Svg className={c} sw={2.4}><circle cx="12" cy="12" r="9.5" /><circle cx="12" cy="12" r="2.4" {...F} /><path d="M3 10.5h6.5M14.5 10.5H21M12 14.5V21" /></Svg>,
+  user: (c) => <Svg className={c}><circle {...F} cx="12" cy="8" r="4.2" /><path {...F} d="M3.5 21c0-4.6 3.8-7 8.5-7s8.5 2.4 8.5 7z" /></Svg>,
+  target: (c) => <Svg className={c} sw={2}><circle cx="12" cy="12" r="6.5" /><circle cx="12" cy="12" r="2.2" {...F} /><path d="M12 2v3M12 19v3M2 12h3M19 12h3" /></Svg>,
+  search: (c) => <Svg className={c} sw={2.6}><circle cx="11" cy="11" r="7" /><path d="m21 21-4.8-4.8" /></Svg>,
+  chevron: (c) => <Svg className={c} sw={2.6}><path d="m6 9 6 6 6-6" /></Svg>,
+  check: (c) => <Svg className={c}><circle {...F} cx="12" cy="12" r="11" /><path d="m7 12.5 3.3 3.3L17 9" stroke="#fff" strokeWidth="2.8" /></Svg>,
+  info: (c) => <Svg className={c}><circle {...F} cx="12" cy="12" r="11" /><path d="M12 11v6" stroke="#fff" strokeWidth="2.8" /><circle cx="12" cy="7.3" r="1.5" fill="#fff" stroke="none" /></Svg>,
+  play: (c) => <Svg className={c}><path {...F} d="M7 4.5v15l13-7.5z" /></Svg>,
+  up: (c) => <Svg className={c} sw={2.8}><path d="M12 20V5M5 12l7-7 7 7" /></Svg>,
+  down: (c) => <Svg className={c} sw={2.8}><path d="M12 4v15M5 12l7 7 7-7" /></Svg>,
+  people: (c) => <Svg className={c}><circle {...F} cx="12" cy="7" r="3.4" /><circle {...F} cx="4.8" cy="9.5" r="2.4" /><circle {...F} cx="19.2" cy="9.5" r="2.4" /><path {...F} d="M5.5 20c0-3.8 2.6-5.8 6.5-5.8s6.5 2 6.5 5.8z" /><path {...F} d="M0.8 19c0-2.6 1.4-4.2 3.6-4.5-1 1-1.5 2.6-1.4 4.5zM23.2 19c0-2.6-1.4-4.2-3.6-4.5 1 1 1.5 2.6 1.4 4.5z" /></Svg>,
+  gear: (c) => <Svg className={c}><circle cx="12" cy="12" r="7.6" strokeWidth="4" strokeDasharray="2.9 2.95" /><circle cx="12" cy="12" r="6.2" strokeWidth="3.2" /></Svg>,
+  bars: (c) => <Svg className={c}><rect {...F} x="3.5" y="13" width="4.6" height="8" rx="1" /><rect {...F} x="9.7" y="8" width="4.6" height="13" rx="1" /><rect {...F} x="15.9" y="3" width="4.6" height="18" rx="1" /></Svg>,
+  cal: (c) => <Svg className={c}><rect {...F} x="3" y="4.5" width="18" height="17" rx="3.5" /><path d="M8 2.5v4M16 2.5v4" strokeWidth="2.4" /><path d="M3 9.5h18" stroke="#fff" strokeWidth="1.6" /><g fill="#fff" stroke="none">{[0, 1, 2].map((r) => [0, 1, 2, 3].map((k) => <rect key={r + "-" + k} x={5.6 + k * 3.6} y={11.6 + r * 3.1} width="2" height="2" rx=".4" />))}</g></Svg>,
+  home: (c) => <Svg className={c}><path {...F} d="M3 11.5 12 3l9 8.5V21h-6v-6H9v6H3z" /></Svg>,
+  logout: (c) => <Svg className={c} sw={2.4}><path d="M9 21H5V3h4M16 17l5-5-5-5M21 12H9" /></Svg>,
+  plus: (c) => <Svg className={c} sw={2.8}><path d="M12 5v14M5 12h14" /></Svg>,
+  road: (c) => <Svg className={c}><path {...F} d="M10 3h4l7.5 18h-19z" /><path d="M12 6.5v3M12 12v3M12 17.5v2" stroke="#fff" strokeWidth="1.8" /></Svg>,
+  arrow: (c) => <Svg className={c}><path {...F} d="M3 11 22 2l-9 19-2-8z" /></Svg>,
+};
+
+const Ridge = ({ className = "" }) => (
+  <svg viewBox="0 0 160 40" className={className} fill="none" stroke="#2f6fe0" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M2 36 40 18 56 26 86 6 104 22 118 14 158 36" />
+    <path d="M70 16 86 6 98 15" strokeWidth="2" />
+  </svg>
+);
+
+/* ---------- piezas reutilizables ---------- */
+const Phone = ({ children, overlay, toast, lift = 16 }) => (
+  <div className="relative h-[750px] w-[372px] shrink-0 rounded-[46px] bg-[#15171c] p-[9px] shadow-[0_18px_40px_rgba(16,32,63,.28)]">
+    <div className="relative h-full overflow-hidden rounded-[38px] bg-[#eaf1fd]">
+      <div className="absolute left-1/2 top-0 z-30 h-[26px] w-[118px] -translate-x-1/2 rounded-b-[18px] bg-[#0a0b0e]" />
+      <div className="absolute inset-x-0 top-0 z-20 flex items-center justify-between px-7 pt-[9px] text-[14px] font-bold text-white">
+        <span>9:41</span>
+        <span className="flex items-center gap-1.5">
+          <svg viewBox="0 0 18 12" className="h-3 w-4" fill="#fff"><rect x="0" y="8" width="3" height="4" rx=".8" /><rect x="5" y="5.5" width="3" height="6.5" rx=".8" /><rect x="10" y="3" width="3" height="9" rx=".8" /><rect x="15" y="0" width="3" height="12" rx=".8" /></svg>
+          <svg viewBox="0 0 16 12" className="h-3 w-4" fill="none" stroke="#fff" strokeWidth="1.8" strokeLinecap="round"><path d="M1 4.5a10 10 0 0 1 14 0M3.5 7.2a6.4 6.4 0 0 1 9 0M6 9.8a2.8 2.8 0 0 1 4 0" /></svg>
+          <span className="h-[11px] w-[22px] rounded-[3px] bg-white" />
+        </span>
+      </div>
+      {children}
+      {overlay}
+      {toast && <div role="status" style={{ bottom: lift }} className={`absolute inset-x-4 z-50 rounded-[14px] px-4 py-3 text-[15px] font-bold leading-tight text-white shadow-lg ${toast.tone === "err" ? "bg-[#c0332b]" : "bg-[#16a34a]"}`}>{toast.msg}</div>}
+    </div>
+  </div>
+);
+
+const Header = ({ icon, title, subtitle, action, tone = "bg-[#0b4bbf]", big }) => (
+  <header className={`${tone} flex items-center gap-3 px-5 pb-4 pt-[44px] text-white`}>
+    <span className="grid h-14 w-14 place-items-center">{icon}</span>
+    <div className="flex-1">
+      <h1 className={`font-extrabold leading-[1.02] ${big ? "text-[30px]" : "text-[27px]"}`}>{title}</h1>
+      {subtitle && <p className="mt-0.5 text-[15px] font-semibold opacity-90">{subtitle}</p>}
+    </div>
+    {action}
+  </header>
+);
+
+const Field = ({ icon, tint, label, value, right, onRight, rightLabel, children }) => (
+  <div className="relative flex items-center rounded-[14px] border border-[#d3e0f4] bg-white">
+    <span className={`m-1 grid h-11 w-11 place-items-center rounded-[10px] ${tint}`}>{icon}</span>
+    <div className="flex-1 pl-2 leading-tight">
+      {label && <div className="text-[13px] font-semibold text-[#1a62d6]">{label}</div>}
+      <div className="text-[17px] font-bold text-[#11203f]">{value}</div>
+    </div>
+    <span className={`relative z-10 pr-3 text-[#0b4bbf] ${onRight ? "" : "pointer-events-none"}`}>{onRight ? <button type="button" onClick={onRight} aria-label={rightLabel}>{right}</button> : right}</span>
+    {children}
+  </div>
+);
+
+const Chip = ({ on, children }) => (
+  <span className={`rounded-full px-3 py-[3px] text-[13px] font-bold ${on ? "bg-[#c9f2d3] text-[#1a7a3a]" : "bg-[#e3e7ee] text-[#7a8699]"}`}>{children}</span>
+);
+
+const Toggle = ({ on, label, onClick }) => (
+  <button type="button" role="switch" aria-checked={on} aria-label={label} onClick={onClick} className={`relative h-[30px] w-[52px] shrink-0 rounded-full ${on ? "bg-[#0b5bdb]" : "bg-[#e3e7ee]"}`}>
+    <span className={`absolute top-[3px] h-6 w-6 rounded-full bg-white shadow ${on ? "right-[3px]" : "left-[3px] border border-[#c9cfdb]"}`} />
+  </button>
+);
+
+const Avatar = ({ cap }) => (
+  <svg viewBox="0 0 40 40" className="h-10 w-10 shrink-0" aria-hidden="true">
+    <circle cx="20" cy="20" r="20" fill="#cfe3ff" />
+    <path d="M6 40c0-9 6-13 14-13s14 4 14 13z" fill="#1f5fd0" />
+    <circle cx="20" cy="17" r="8" fill="#f1b27d" />
+    <path d="M11.5 15.5c0-6 3.6-8.5 8.5-8.5s8.5 2.5 8.5 8.5z" fill={cap} />
+    <rect x="9" y="14.5" width="22" height="2.6" rx="1.3" fill={cap} />
+    <circle cx="16.8" cy="18.5" r="1" fill="#2a1a10" /><circle cx="23.2" cy="18.5" r="1" fill="#2a1a10" />
+    <path d="M17 22.2q3 2 6 0" stroke="#7a3f1d" strokeWidth="1.2" fill="none" strokeLinecap="round" />
+  </svg>
+);
+
+/* ---------- ilustraciones (marcadores de posición de las fotos) ---------- */
+const SatMap = () => (
+  <svg viewBox="0 0 354 330" preserveAspectRatio="xMidYMid slice" className="absolute inset-0 h-full w-full" aria-hidden="true">
+    <defs>
+      <pattern id="roofs" width="14" height="12" patternUnits="userSpaceOnUse">
+        <rect width="14" height="12" fill="#6f8350" />
+        <rect x="2" y="2" width="5" height="4" fill="#b8644a" /><rect x="8" y="6" width="4" height="4" fill="#d3c4a6" />
+        <rect x="1" y="8" width="3" height="3" fill="#8a8b86" />
+      </pattern>
+    </defs>
+    <rect width="354" height="330" fill="url(#roofs)" />
+    <g fill="none" stroke="#e2d6bd" strokeWidth="3" opacity=".9">
+      <circle cx="177" cy="150" r="60" /><circle cx="177" cy="150" r="115" strokeWidth="2" />
+      {[0, 30, 60, 90, 120, 150].map((a) => <line key={a} x1="177" y1="-60" x2="177" y2="360" transform={`rotate(${a} 177 150)`} />)}
+    </g>
+    <rect width="354" height="330" fill="#2c4a1e" opacity=".12" />
+  </svg>
+);
+
+const BusPin = ({ className = "", style }) => (
+  <span className={`absolute transition-all duration-1000 ease-linear ${className}`} style={style}>
+    <svg viewBox="0 0 36 44" className="h-11 w-9 drop-shadow" aria-hidden="true">
+      <path d="M18 42C18 42 3 28 3 17a15 15 0 0 1 30 0c0 11-15 25-15 25z" fill="#fff" stroke="#1fa64f" strokeWidth="3" />
+    </svg>
+    <span className="absolute left-1/2 top-[7px] -translate-x-1/2 text-[#1fa64f] [--win:#fff]">{Ic.bus("h-[22px] w-[22px]")}</span>
+  </span>
+);
+
+const Hero = () => (
+  <svg viewBox="0 0 354 208" className="h-[208px] w-full" aria-hidden="true">
+    <defs><linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#76bdf0" /><stop offset="1" stopColor="#d9eefd" /></linearGradient></defs>
+    <rect width="354" height="208" fill="url(#sky)" />
+    <path d="M0 120 50 72 80 98 120 60 170 118z" fill="#6c7fb0" /><path d="M50 72 62 86 54 84 46 90zM120 60l14 16-9-3-8 6z" fill="#fff" />
+    <path d="M200 118 250 64 290 100 330 76 354 96V130z" fill="#6c7fb0" /><path d="M250 64l12 14-8-3-7 7z" fill="#fff" />
+    <rect y="116" width="354" height="50" fill="#79a84f" />
+    <path d="M0 208 118 150h118l118 58z" fill="#585e68" /><path d="M0 208V176l120-30v4z" fill="#79a84f" />
+    <g>
+      <rect x="92" y="14" width="170" height="146" rx="24" fill="#f5f7fb" stroke="#c7d1e3" strokeWidth="2" />
+      <rect x="104" y="24" width="146" height="20" rx="6" fill="#16203a" />
+      <text x="177" y="40" textAnchor="middle" fontSize="15" fontWeight="800" fill="#fff" fontFamily="Nunito Sans,sans-serif">Tolomosa</text>
+      <rect x="104" y="48" width="146" height="62" rx="12" fill="#27415f" /><path d="M177 48v62" stroke="#0e1a2e" strokeWidth="3" />
+      <rect x="92" y="116" width="170" height="22" fill="#1f5fd0" /><rect x="132" y="120" width="90" height="14" rx="5" fill="#0f2f78" />
+      <circle cx="115" cy="148" r="9" fill="#fff" stroke="#9fb0cf" strokeWidth="2" /><circle cx="239" cy="148" r="9" fill="#fff" stroke="#9fb0cf" strokeWidth="2" />
+      <rect x="82" y="40" width="10" height="26" rx="4" fill="#2a3550" /><rect x="262" y="40" width="10" height="26" rx="4" fill="#2a3550" />
+    </g>
+  </svg>
+);
+
+/* ---------- estado, validaciones y utilidades ---------- */
+const RAMALES = ["Tolomosa", "Churquis", "Pampa Redonda"];
+const SEED = [
+  { id: 1, name: "Juan Pérez", micro: 12, ramal: 0, on: true, cap: "#1f5fd0" },
+  { id: 2, name: "Carlos Méndez", micro: 17, ramal: 1, on: false, cap: "#1f5fd0" },
+  { id: 3, name: "Luis Vargas", micro: 21, ramal: 2, on: true, cap: "#2a56b8" },
+  { id: 4, name: "Miguel Rojas", micro: null, ramal: 0, on: false, cap: "#1f7be0" },
+];
+const CFG0 = { coop: "Transporte Tolomosa", notif: true };
+/* Guarda en sessionStorage: sobrevive a recargar la página, se borra al cerrar la pestaña */
+function useStored(key, init) {
+  const [v, setV] = useState(() => { try { const r = sessionStorage.getItem(key); return r ? JSON.parse(r) : init; } catch { return init; } });
+  useEffect(() => { try { sessionStorage.setItem(key, JSON.stringify(v)); } catch { /* sin almacenamiento */ } }, [key, v]);
+  return [v, setV];
+}
+const vNombre = (s) => (!s.trim() ? "Escribe el nombre" : s.trim().length < 3 ? "Mínimo 3 letras" : /\d/.test(s) ? "No uses números" : "");
+const vMicro = (v, ds, id) => (v === "" ? "" : !/^\d+$/.test(String(v)) ? "Solo números" : +v < 1 || +v > 36 ? "Debe estar entre 1 y 36" : ds.some((d) => d.micro === +v && d.id !== id) ? `El micro N° ${v} ya está asignado` : "");
+const vTel = (s) => (/^[67]\d{7}$/.test(s) ? "" : "Ingresa 8 dígitos que empiecen con 6 o 7");
+const hm = (t) => new Date(t).toLocaleTimeString("es-BO", { hour: "2-digit", minute: "2-digit" });
+const mins = (a, b) => Math.max(1, Math.round((b - a) / 60000));
+const T0 = Date.now();
+const CODE = "1234"; /* código de prueba para iniciar sesión */
+const mmss = (ms) => { const t = Math.max(0, Math.floor(ms / 1000)); return `${String(Math.floor(t / 60)).padStart(2, "0")}:${String(t % 60).padStart(2, "0")}`; };
+const useNow = () => { const [n, setN] = useState(Date.now()); useEffect(() => { const id = setInterval(() => setN(Date.now()), 1000); return () => clearInterval(id); }, []); return n; };
+function Fit({ children }) {
+  const [k, setK] = useState(1);
+  useEffect(() => { const f = () => setK(Math.min(1, (window.innerWidth - 16) / 372, (window.innerHeight - 70) / 750)); f(); window.addEventListener("resize", f); return () => window.removeEventListener("resize", f); }, []);
+  return <div style={{ width: 372 * k, height: 750 * k }}><div style={{ width: 372, height: 750, transform: `scale(${k})`, transformOrigin: "top left" }}>{children}</div></div>;
+}
+const dirTxt = (d) => (d === "campesino" ? "Hacia el Campesino" : "Hacia los Ramales");
+
+const Modal = ({ title, onClose, children }) => {
+  useEffect(() => { const h = (e) => e.key === "Escape" && onClose(); window.addEventListener("keydown", h); return () => window.removeEventListener("keydown", h); }, [onClose]);
+  return (
+    <div className="absolute inset-0 z-40 flex items-end bg-[#0a1630]/55" onClick={onClose} role="presentation">
+      <div role="dialog" aria-modal="true" aria-label={title} onClick={(e) => e.stopPropagation()} className="max-h-full w-full overflow-y-auto rounded-t-[26px] bg-white px-4 pb-5 pt-4">
+        <h2 className="mb-2 text-[21px] font-extrabold text-[#11203f]">{title}</h2>
+        {children}
+      </div>
+    </div>
+  );
+};
+const Input = ({ label, error, ...p }) => (
+  <label className="mb-3 block">
+    <span className="text-[14px] font-semibold text-[#5f6f8a]">{label}</span>
+    <input {...p} aria-invalid={!!error} className={`mt-1 h-12 w-full rounded-[12px] border bg-white px-3 text-[17px] font-semibold text-[#11203f] outline-none focus:ring-2 focus:ring-[#0b5bdb] ${error ? "border-[#c0332b]" : "border-[#d3e0f4]"}`} />
+    {error && <span role="alert" className="mt-1 block text-[13px] font-semibold text-[#c0332b]">{error}</span>}
+  </label>
+);
+const Btn = ({ tone = "blue", className = "", ...p }) => (
+  <button type="button" {...p} className={`h-12 rounded-[14px] px-3 text-[16px] font-bold disabled:opacity-50 ${{ blue: "bg-[#0b5bdb] text-white", ghost: "bg-[#e8ebf0] text-[#11203f]", red: "bg-[#c0332b] text-white", green: "bg-[#16a34a] text-white" }[tone]} ${className}`} />
+);
+const Confirm = ({ title, text, ok, tone = "blue", onOk, onClose }) => (
+  <Modal title={title} onClose={onClose}>
+    <p className="mb-4 text-[16px] leading-snug text-[#5f6f8a]">{text}</p>
+    <div className="grid grid-cols-2 gap-2"><Btn tone="ghost" onClick={onClose}>Cancelar</Btn><Btn tone={tone} onClick={onOk}>{ok}</Btn></div>
+  </Modal>
+);
+const Pick = ({ label, value, onChange, children, disabled }) => (
+  <select aria-label={label} value={value} disabled={disabled} onChange={onChange} className="absolute inset-0 h-full w-full cursor-pointer opacity-0 disabled:cursor-not-allowed">{children}</select>
+);
+
+/* ---------- pantallas ---------- */
+const Pasajero = ({ drivers, trip, now, profile, setProfile, auth, setAuth, view, go, toast, say }) => {
+  const [dest, setDest] = useState("Campesino");
+  const [q, setQ] = useState("Campesino");
+  const [busy, setBusy] = useState(false);
+  const [modal, setModal] = useState(false);
+  /* Solo choferes habilitados (Disponible). Si tienen viaje activo se usa su ramal y su sentido. */
+  const compute = (d) => drivers.filter((x) => x.on && x.micro).map((x) => { const t = trip && trip.micro === x.micro ? trip : null; return { ...x, t, ramal: t ? t.ramal : x.ramal }; })
+    .filter((x) => (d === "Campesino" ? !x.t || x.t.dir === "campesino" : x.ramal === RAMALES.indexOf(d.replace("Ramal ", "")) && (!x.t || x.t.dir === "ramales")))
+    .map((x) => { const base = 150 + ((x.micro * 37) % 400); const el = (now - (x.t ? x.t.start : T0)) / 1000; return { ...x, m: Math.round((60 + ((((base - 60 - el * 6) % 480) + 480) % 480)) / 10) * 10, a: x.t ? (x.t.dir === "campesino" ? 3.3 : 6.0) : [3.5, 5.6, 2.3][x.micro % 3] }; })
+    .sort((a, b) => a.m - b.m).slice(0, 6);
+  const list = compute(q);
+  const buscar = () => {
+    if (busy) return;
+    setBusy(true);
+    setTimeout(() => { setQ(dest); setBusy(false); const n = compute(dest).length; say("pas", n ? `${n} micro${n > 1 ? "s" : ""} disponible${n > 1 ? "s" : ""} hacia ${dest}` : `No hay micros disponibles hacia ${dest}`, n ? "ok" : "err"); }, 600);
+  };
+  const locate = () => {
+    if (!navigator.geolocation) return say("pas", "Este dispositivo no tiene GPS", "err");
+    navigator.geolocation.getCurrentPosition(() => say("pas", "Ubicación actualizada"), () => say("pas", "No pudimos ubicarte. Activa el permiso de ubicación", "err"), { timeout: 8000 });
+  };
+  return (
+    <Phone toast={toast} overlay={modal && <ProfileModal profile={profile} auth={auth} setAuth={setAuth} view={view} go={go} say={say} onClose={() => setModal(false)} onSave={(p) => { setProfile(p); setModal(false); say("pas", "Perfil guardado"); }} />}>
+      <div className="flex h-full flex-col">
+        <Header icon={Ic.bus("h-12 w-12 [--win:#0b4bbf]")} title={<>Transporte<br />Tolomosa</>} action={<button type="button" aria-label="Mi perfil" onClick={() => setModal(true)} className="text-white">{Ic.user("h-9 w-9")}</button>} />
+        <section className="-mt-2 rounded-t-[26px] bg-[#e9f1fd] px-3.5 pb-3.5 pt-3.5">
+          <div className="space-y-2">
+            <Field icon={Ic.pin("h-6 w-6 text-[#0b4bbf]")} tint="bg-[#e4edfb]" label="Origen" value="Mi ubicación actual" right={Ic.target("h-8 w-8")} onRight={locate} rightLabel="Actualizar mi ubicación" />
+            <Field icon={Ic.pin("h-6 w-6 text-[#16a34a]")} tint="bg-[#e4f4ea]" label="Destino" value={dest} right={Ic.chevron("h-6 w-6 text-[#11203f]")}>
+              <Pick label="Destino" value={dest} onChange={(e) => setDest(e.target.value)}>
+                <option>Campesino</option>{RAMALES.map((r) => <option key={r}>Ramal {r}</option>)}
+              </Pick>
+            </Field>
+          </div>
+          <button type="button" onClick={buscar} disabled={busy} className="mt-3 flex h-[52px] w-full items-center justify-center gap-2 rounded-2xl bg-[#0b5bdb] text-[19px] font-bold text-white shadow-[0_4px_10px_rgba(11,91,219,.35)] disabled:opacity-70">
+            {Ic.search("h-6 w-6")} {busy ? "Buscando…" : "Buscar Micros"}
+          </button>
+        </section>
+        <section className="relative flex-1 overflow-hidden">
+          <SatMap />
+          <div className="absolute left-1/2 top-[22px] -translate-x-1/2 rounded-xl bg-[#1b4fd0] px-4 py-1.5 text-[15px] font-bold text-white">
+            Usted está aquí<span className="absolute -bottom-1.5 left-1/2 h-3 w-3 -translate-x-1/2 rotate-45 bg-[#1b4fd0]" />
+          </div>
+          <span className="absolute left-1/2 top-[84px] h-[110px] w-[110px] -translate-x-1/2 -translate-y-1/4 rounded-full bg-[#3a6bff]/25 ring-1 ring-[#6f93ff]/40" />
+          <span className="absolute left-1/2 top-[110px] h-9 w-9 -translate-x-1/2 rounded-full border-[3px] border-white bg-[#1b4fd0] shadow-[0_0_0_10px_rgba(58,107,255,.3)]" />
+          {list.slice(0, 3).map((d) => { const r = 18 + (d.m / 480) * 120; return <BusPin key={d.id} style={{ left: `calc(50% + ${Math.round(r * Math.cos(d.a) - 18)}px)`, top: Math.max(4, Math.round(128 + r * Math.sin(d.a) * 0.6 - 44)) }} />; })}
+          <button type="button" aria-label="Centrar en mi ubicación" onClick={locate} className="absolute bottom-[110px] left-3 grid h-11 w-11 place-items-center rounded-full bg-white text-[#11203f] shadow-md">{Ic.arrow("h-6 w-6")}</button>
+        </section>
+        <section className="relative -mt-[96px] rounded-t-[26px] bg-white px-3.5 pb-3 pt-3.5 shadow-[0_-6px_18px_rgba(16,32,63,.12)]">
+          <h2 className="mb-2 flex items-center gap-2 text-[18px] font-bold text-[#11203f]"><span className="text-[#16a34a]">{Ic.check("h-7 w-7")}</span>Micros más cercanos<span className="ml-auto text-[14px] font-semibold text-[#5f6f8a]">{list.length}</span></h2>
+          <ul className="max-h-[168px] divide-y divide-[#e6ecf6] overflow-y-auto rounded-[14px] border border-[#e1e8f3]">
+            {list.length === 0 && <li className="px-3 py-5 text-center text-[15px] font-semibold text-[#5f6f8a]">No hay micros disponibles hacia {q}</li>}
+            {list.map((d) => (
+              <li key={d.id}>
+                <button type="button" onClick={() => say("pas", `Micro N° ${d.micro} llega en ~${Math.max(1, Math.round(d.m / 200))} min`)} className="flex w-full items-center gap-3 px-3 py-2 text-left">
+                  <span className="text-[#0b4bbf]">{Ic.bus("h-9 w-9 [--win:#fff]")}</span>
+                  <div className="min-w-0 flex-1 leading-tight"><div className="text-[17px] font-bold text-[#11203f]">Micro N° {d.micro}</div><div className="truncate text-[13.5px] text-[#5f6f8a]">{d.t ? `a ${d.m} m • ${RAMALES[d.ramal]} • ${mmss(now - d.t.start)}` : `a ${d.m} m • Ramal ${RAMALES[d.ramal]}`}</div></div>
+                  <Chip on={!!d.t}>{d.t ? "En servicio" : "Disponible"}</Chip>
+                </button>
+              </li>
+            ))}
+          </ul>
+          <div className="mt-2.5 flex items-center gap-2 overflow-hidden rounded-[14px] bg-[#e4eefc] px-3 py-2">
+            <span className="text-[#1b6fe8]">{Ic.info("h-7 w-7")}</span><span className="text-[17px] font-bold italic text-[#0b4bbf]">¡Viaje seguro!</span>
+            <Ridge className="ml-auto h-8 w-24" />
+          </div>
+        </section>
+      </div>
+    </Phone>
+  );
+};
+
+const ProfileModal = ({ profile, onSave, onClose, auth, setAuth, go, say }) => {
+  const [f, setF] = useState(profile);
+  const [t, setT] = useState({});
+  const [ask, setAsk] = useState(null);
+  const [code, setCode] = useState("");
+  const [ce, setCe] = useState("");
+  const err = { name: vNombre(f.name), phone: vTel(f.phone) };
+  const save = () => { setT({ name: 1, phone: 1 }); if (!err.name && !err.phone) onSave({ name: f.name.trim(), phone: f.phone }); };
+  const pick = (k) => { if (auth[k]) { go(k); onClose(); say(k, `Vista de ${k === "chof" ? "Chofer" : "Administrador"}`); } else { setAsk(k); setCode(""); setCe(""); } };
+  const enter = () => {
+    if (!/^\d{4}$/.test(code)) return setCe("Ingresa los 4 dígitos");
+    if (code !== CODE) return setCe("Código incorrecto");
+    setAuth({ ...auth, [ask]: true }); go(ask); onClose(); say(ask, "Sesión iniciada");
+  };
+  return (
+    <Modal title="Mi cuenta" onClose={onClose}>
+      <Input autoFocus label="Nombre" value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} onBlur={() => setT({ ...t, name: 1 })} error={t.name && err.name} />
+      <Input label="Teléfono" inputMode="numeric" maxLength={8} value={f.phone} onChange={(e) => setF({ ...f, phone: e.target.value.replace(/\D/g, "") })} onBlur={() => setT({ ...t, phone: 1 })} error={t.phone && err.phone} />
+      <Btn className="w-full" onClick={save}>Guardar perfil</Btn>
+      <div className="mt-4 border-t border-[#e1e8f3] pt-3">
+        <h3 className="mb-2 text-[16px] font-bold text-[#11203f]">Iniciar sesión / cambiar de vista</h3>
+        <div className="grid grid-cols-2 gap-2"><Btn tone="ghost" onClick={() => pick("chof")}>Chofer{auth.chof ? " ✓" : ""}</Btn><Btn tone="ghost" onClick={() => pick("adm")}>Administrador{auth.adm ? " ✓" : ""}</Btn></div>
+        {ask && <div className="mt-3"><Input label={`Código de acceso de ${ask === "chof" ? "Chofer" : "Administrador"} (prueba: ${CODE})`} inputMode="numeric" maxLength={4} value={code} onChange={(e) => { setCode(e.target.value.replace(/\D/g, "")); setCe(""); }} error={ce} /><div className="grid grid-cols-2 gap-2"><Btn tone="ghost" onClick={() => setAsk(null)}>Cancelar</Btn><Btn onClick={enter}>Entrar</Btn></div></div>}
+      </div>
+    </Modal>
+  );
+};
+
+const Chofer = ({ drivers, meId, trip, now, setTrip, setJornadas, onLogout, toast, say }) => {
+  const me = drivers.find((d) => d.id === meId) || drivers[0];
+  const [ramal, setRamal] = useState(0);
+  const [dir, setDir] = useState("campesino");
+  const [ask, setAsk] = useState(null);
+  const r = trip ? trip.ramal : ramal;
+  const d = trip ? trip.dir : dir;
+  const start = () => {
+    if (!me) return say("chof", "No hay choferes registrados", "err");
+    if (!me.on) return say("chof", `${me.name} figura como No disponible. Pide al administrador que te habilite`, "err");
+    if (!me.micro) return say("chof", "Aún no tienes un micro asignado", "err");
+    setAsk("start");
+  };
+  const confirmStart = () => { setTrip({ name: me.name, micro: me.micro, ramal, dir, start: Date.now() }); setAsk(null); say("chof", `Viaje iniciado · Micro N° ${me.micro}`); };
+  const confirmEnd = () => { const end = Date.now(); setJornadas((j) => [{ k: end, name: trip.name, micro: trip.micro, ramal: trip.ramal, dir: trip.dir, start: trip.start, end }, ...j]); setTrip(null); setAsk(null); say("chof", "Viaje terminado y registrado"); };
+  const logout = () => (trip ? say("chof", "Termina el viaje antes de cerrar sesión", "err") : onLogout());
+  const seg = (k) => `flex h-[62px] items-center justify-center gap-2 rounded-xl px-2 text-left text-[16px] font-bold leading-tight disabled:cursor-not-allowed ${d === k ? "bg-[#0b4bbf] text-white" : "border border-[#dfe4ec] bg-[#e8ebf0] text-[#11203f]"} ${trip && d !== k ? "opacity-60" : ""}`;
+  return (
+    <Phone toast={toast} overlay={
+      ask === "start" && me ? <Confirm title="¿Comenzar viaje?" text={`Micro N° ${me.micro} · Ramal ${RAMALES[ramal]} · ${dirTxt(dir)}. Los pasajeros verán tu micro como en servicio.`} ok="Comenzar" tone="green" onOk={confirmStart} onClose={() => setAsk(null)} />
+      : ask === "end" && trip ? <Confirm title="¿Terminar viaje?" text={`Llevas ${mins(trip.start, now)} min en ruta. El viaje quedará registrado en las jornadas.`} ok="Terminar" tone="red" onOk={confirmEnd} onClose={() => setAsk(null)} /> : null}>
+      <div className="flex h-full flex-col bg-[#0b4bbf]">
+        <Header icon={Ic.wheel("h-14 w-14")} title="Chofer" subtitle="Transporte Tolomosa" big action={<button type="button" aria-label="Cerrar sesión" onClick={logout} className="text-white">{Ic.logout("h-9 w-9")}</button>} />
+        <Hero />
+        <section className="-mt-3 flex flex-1 flex-col rounded-t-[26px] bg-white px-4 pt-4">
+          <h2 className="flex items-center justify-center gap-2 text-[27px] font-extrabold text-[#11203f]"><span className="text-[#0b4bbf]">{Ic.road("h-10 w-10")}</span>{trip ? "Viaje en curso" : "Iniciar Viaje"}</h2>
+          <span className="mb-1.5 mt-3 block text-[17px] font-bold text-[#11203f]">Ramal</span>
+          <Field icon={Ic.pin("h-6 w-6 text-[#0b4bbf]")} tint="bg-[#e4edfb]" value={`Ramal ${RAMALES[r]}`} right={Ic.chevron("h-6 w-6 text-[#11203f]")}>
+            <Pick label="Ramal" value={r} disabled={!!trip} onChange={(e) => setRamal(+e.target.value)}>{RAMALES.map((n, i) => <option key={n} value={i}>Ramal {n}</option>)}</Pick>
+          </Field>
+          <span className="mb-1.5 mt-3 block text-[17px] font-bold text-[#11203f]">Dirección</span>
+          <div className="grid grid-cols-2 gap-1.5">
+            <button type="button" aria-pressed={d === "campesino"} disabled={!!trip} onClick={() => setDir("campesino")} className={seg("campesino")}>{Ic.up("h-7 w-7 shrink-0")}<span>Hacia el<br />Campesino</span></button>
+            <button type="button" aria-pressed={d === "ramales"} disabled={!!trip} onClick={() => setDir("ramales")} className={seg("ramales")}>{Ic.down("h-7 w-7 shrink-0")}<span>Hacia los<br />Ramales</span></button>
+          </div>
+          {trip ? (
+            <button type="button" onClick={() => setAsk("end")} className="mt-4 flex h-[62px] w-full items-center justify-center gap-2 rounded-2xl bg-[#c0332b] text-[24px] font-extrabold text-white shadow-[0_5px_12px_rgba(192,51,43,.35)]"><span className="h-5 w-5 rounded-[4px] bg-white" />Terminar Viaje</button>
+          ) : (
+            <button type="button" onClick={start} className="mt-4 flex h-[62px] w-full items-center justify-center gap-2 rounded-2xl bg-[#16a34a] text-[24px] font-extrabold text-white shadow-[0_5px_12px_rgba(22,163,74,.35)]">{Ic.play("h-9 w-9")}Comenzar Viaje</button>
+          )}
+          <div className="mt-3.5 flex items-center gap-3 rounded-[14px] border border-[#c3d6f3] bg-[#dde9fb] px-3.5 py-3">
+            <span className="text-[#1b6fe8]">{Ic.check("h-9 w-9")}</span><p className="text-[16px] font-semibold leading-tight text-[#11203f]">{trip ? `Micro N° ${trip.micro} en servicio · activo ${mmss(now - trip.start)}` : "Tu viaje quedará registrado para el control del servicio."}</p>
+          </div>
+          <Ridge className="mx-auto mt-auto h-14 w-64 pb-2" />
+        </section>
+      </div>
+    </Phone>
+  );
+};
+
+const DriverForm = ({ init, drivers, trip, onSave, onDelete, onCancel }) => {
+  const [f, setF] = useState({ name: init?.name ?? "", micro: init?.micro ?? "", ramal: init?.ramal ?? 0 });
+  const [t, setT] = useState({});
+  const [del, setDel] = useState(false);
+  const err = { name: vNombre(f.name), micro: vMicro(String(f.micro), drivers, init?.id) };
+  const save = () => { setT({ name: 1, micro: 1 }); if (err.name || err.micro) return; onSave({ name: f.name.trim().replace(/\s+/g, " "), micro: String(f.micro) === "" ? null : +f.micro, ramal: +f.ramal }); };
+  return (
+    <>
+      <Input autoFocus label="Nombre completo" value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} onBlur={() => setT({ ...t, name: 1 })} error={t.name && err.name} />
+      <Input label="Micro N° (opcional, 1 a 36)" inputMode="numeric" maxLength={2} value={f.micro} onChange={(e) => setF({ ...f, micro: e.target.value.replace(/\D/g, "") })} onBlur={() => setT({ ...t, micro: 1 })} error={t.micro && err.micro} />
+      <label className="mb-4 block"><span className="text-[14px] font-semibold text-[#5f6f8a]">Ramal habitual</span>
+        <select value={f.ramal} onChange={(e) => setF({ ...f, ramal: e.target.value })} className="mt-1 h-12 w-full rounded-[12px] border border-[#d3e0f4] bg-white px-3 text-[17px] font-semibold text-[#11203f]">{RAMALES.map((n, i) => <option key={n} value={i}>Ramal {n}</option>)}</select>
+      </label>
+      <div className="grid grid-cols-2 gap-2"><Btn tone="ghost" onClick={onCancel}>Cancelar</Btn><Btn onClick={save}>{init ? "Guardar cambios" : "Agregar"}</Btn></div>
+      {init && (del
+        ? <div className="mt-3 rounded-[14px] bg-[#fdeceb] p-3"><p className="mb-2 text-[14px] font-semibold text-[#c0332b]">¿Eliminar a {init.name}? No se puede deshacer.</p><Btn tone="red" className="w-full" onClick={() => onDelete(init)}>Sí, eliminar</Btn></div>
+        : <button type="button" onClick={() => setDel(true)} className="mt-3 w-full text-[15px] font-bold text-[#c0332b]">Eliminar chofer</button>)}
+    </>
+  );
+};
+
+const Admin = ({ drivers, setDrivers, trip, jornadas, setJornadas, cfg, setCfg, resetAll, onLogout, toast, say }) => {
+  const [tab, setTab] = useState("inicio");
+  const [modal, setModal] = useState(null);
+  const [draft, setDraft] = useState(cfg.coop);
+  const [tc, setTc] = useState(false);
+  const close = () => setModal(null);
+  const tiles = [["people", "Choferes", "Gestionar personal", "inicio"], ["bus", "Vehículos", "Control de micros", "vehiculos"], ["bars", "Estadísticas", "Ver reportes", "reportes"], ["cal", "Jornadas", "Historial de viajes", "jornadas"]];
+  const toggle = (d) => {
+    if (!d.on && !d.micro) return say("adm", `Asigna un micro a ${d.name} antes de habilitarlo`, "err");
+    if (d.on && trip && trip.micro === d.micro) return say("adm", `${d.name} tiene un viaje en curso`, "err");
+    setDrivers((ds) => ds.map((x) => (x.id === d.id ? { ...x, on: !x.on } : x)));
+    say("adm", `${d.name} ahora está ${d.on ? "No disponible" : "Disponible"}`);
+  };
+  const saveDriver = (init) => (v) => {
+    if (init) { setDrivers((ds) => ds.map((x) => (x.id === init.id ? { ...x, ...v, on: v.micro ? x.on : false } : x))); say("adm", "Cambios guardados"); }
+    else { setDrivers((ds) => [...ds, { id: Math.max(0, ...ds.map((x) => x.id)) + 1, ...v, on: v.micro != null, cap: "#1f5fd0" }]); say("adm", `Chofer agregado: ${v.name}${v.micro != null ? " · Disponible" : ""}`); }
+    close();
+  };
+  const removeDriver = (d) => { if (trip && trip.micro === d.micro) return say("adm", "No puedes eliminar a un chofer con viaje en curso", "err"); setDrivers((ds) => ds.filter((x) => x.id !== d.id)); close(); say("adm", `${d.name} eliminado`); };
+  const saveCfg = () => { setTc(true); if (draft.trim().length < 3) return; setCfg({ ...cfg, coop: draft.trim() }); say("adm", "Cambios guardados"); };
+  const nav = (k, label, icon, tabs) => <button type="button" aria-current={tabs.includes(tab) ? "page" : undefined} onClick={() => setTab(k)} className={`flex flex-col items-center ${tabs.includes(tab) ? "text-[#0b4bbf]" : ""}`}>{icon("h-7 w-7")}{label}</button>;
+  const back = (title) => <div className="flex shrink-0 items-center gap-2"><button type="button" aria-label="Volver al inicio" onClick={() => setTab("inicio")} className="grid h-9 w-9 place-items-center rounded-full bg-white text-[#0b4bbf] [&>svg]:rotate-90">{Ic.chevron("h-6 w-6")}</button><h2 className="text-[20px] font-extrabold text-[#11203f]">{title}</h2></div>;
+  const card = "rounded-[18px] border border-[#e1e8f3] bg-white p-3";
+  const total = jornadas.reduce((s, j) => s + mins(j.start, j.end), 0);
+  const stats = [[`${drivers.filter((x) => x.on).length}/${drivers.length}`, "Choferes disponibles"], [String(jornadas.length), "Viajes realizados"], [`${total} min`, "Tiempo en ruta"], [trip ? "1" : "0", "Micros en ruta ahora"]];
+  const modalEl = !modal ? null
+    : modal.t === "driver" ? <Modal title={modal.d ? "Editar chofer" : "Agregar chofer"} onClose={close}><DriverForm init={modal.d} drivers={drivers} trip={trip} onSave={saveDriver(modal.d)} onDelete={removeDriver} onCancel={close} /></Modal>
+    : modal.t === "logout" ? <Confirm title="¿Cerrar sesión?" text="Tendrás que ingresar de nuevo para administrar." ok="Cerrar sesión" onOk={() => { close(); setTab("inicio"); onLogout(); }} onClose={close} />
+    : modal.t === "clear" ? <Confirm title="¿Borrar historial?" text="Se eliminarán todas las jornadas registradas." ok="Borrar" tone="red" onOk={() => { setJornadas([]); close(); say("adm", "Historial borrado"); }} onClose={close} />
+    : <Confirm title="¿Restablecer datos?" text="Los choferes, jornadas y ajustes vuelven a los valores iniciales." ok="Restablecer" tone="red" onOk={() => { resetAll(); setDraft(CFG0.coop); close(); say("adm", "Datos restablecidos"); }} onClose={close} />;
+  return (
+    <Phone toast={toast} lift={84} overlay={modalEl}>
+      <div className="flex h-full flex-col">
+        <Header tone="bg-[#5b3db0]" icon={Ic.gear("h-14 w-14")} title="Administrador" subtitle={cfg.coop} action={<button type="button" aria-label="Cerrar sesión" onClick={() => setModal({ t: "logout" })} className="text-white">{Ic.logout("h-9 w-9")}</button>} />
+        <div className={`-mt-1 flex min-h-0 flex-1 flex-col gap-2.5 rounded-t-[22px] bg-[#eef3fc] px-3 pb-2.5 pt-3 ${tab === "inicio" ? "" : "overflow-y-auto"}`}>
+          {tab === "inicio" && (<>
+            <div className="grid shrink-0 grid-cols-2 gap-2.5">
+              {tiles.map(([k, t, s, go]) => (
+                <button type="button" key={t} onClick={() => setTab(go)} className="rounded-[18px] border border-[#e1e8f3] bg-white px-2 py-2 text-center">
+                  <span className="mx-auto block w-fit text-[#0b4bbf]">{Ic[k]("h-9 w-9 [--win:#fff]")}</span>
+                  <div className="mt-1 text-[18px] font-bold leading-tight text-[#11203f]">{t}</div><div className="text-[13.5px] leading-tight text-[#5f6f8a]">{s}</div>
+                </button>
+              ))}
+            </div>
+            <div className="flex min-h-0 flex-1 flex-col rounded-[18px] border border-[#e1e8f3] bg-white px-3 pb-3 pt-3">
+              <h2 className="mb-1 flex items-center gap-2 text-[19px] font-bold text-[#11203f]"><span className="text-[#0b4bbf]">{Ic.people("h-8 w-8")}</span>Choferes Registrados</h2>
+              <ul className="min-h-0 flex-1 overflow-y-auto">
+                {drivers.length === 0 && <li className="py-4 text-center text-[15px] text-[#5f6f8a]">Aún no hay choferes. Agrega el primero.</li>}
+                {drivers.map((d) => (
+                  <li key={d.id} className="flex items-center gap-2.5 border-t border-[#edf1f7] py-1 first:border-0">
+                    <button type="button" onClick={() => setModal({ t: "driver", d })} aria-label={`Editar a ${d.name}`} className="flex flex-1 items-center gap-2.5 text-left">
+                      <Avatar cap={d.cap} />
+                      <span className="flex-1 leading-tight"><span className="block text-[17px] font-bold text-[#11203f]">{d.name}</span><span className="block text-[14px] text-[#5f6f8a]">{d.micro ? `Micro N° ${d.micro}` : "Reemplazo"}</span></span>
+                    </button>
+                    <span className={`rounded-full px-3 py-[3px] text-[13px] font-bold ${d.on ? "bg-[#22a447] text-white" : "bg-[#e3e7ee] text-[#7a8699]"}`}>{d.on ? "Disponible" : "No disponible"}</span>
+                    <Toggle on={d.on} label={`Disponibilidad de ${d.name}`} onClick={() => toggle(d)} />
+                  </li>
+                ))}
+              </ul>
+              <button type="button" onClick={() => setModal({ t: "driver" })} className="mt-2 flex h-11 w-full shrink-0 items-center justify-center gap-2 rounded-xl bg-[#0b4bbf] text-[17px] font-bold text-white">{Ic.plus("h-6 w-6")}Agregar Chofer</button>
+            </div>
+          </>)}
+          {tab === "vehiculos" && (<>{back("Vehículos")}
+            <div className={card}>{drivers.filter((x) => x.micro).sort((a, b) => a.micro - b.micro).map((d) => (
+              <div key={d.id} className="flex items-center gap-3 border-t border-[#edf1f7] py-2 first:border-0">
+                <span className="text-[#0b4bbf]">{Ic.bus("h-9 w-9 [--win:#fff]")}</span>
+                <span className="flex-1 leading-tight"><span className="block text-[17px] font-bold">Micro N° {d.micro}</span><span className="text-[14px] text-[#5f6f8a]">{d.name} · Ramal {RAMALES[d.ramal]}</span></span>
+                <Chip on={!!trip && trip.micro === d.micro}>{trip && trip.micro === d.micro ? "En ruta" : d.on ? "Libre" : "Parado"}</Chip>
+              </div>))}
+              <p className="pt-2 text-[13.5px] text-[#5f6f8a]">{drivers.filter((x) => x.micro).length} de 36 micros con chofer asignado.</p></div></>)}
+          {tab === "reportes" && (<>{back("Reportes")}
+            <div className="grid grid-cols-2 gap-2.5">{stats.map(([n, l]) => <div key={l} className={`${card} text-center`}><div className="text-[26px] font-extrabold text-[#0b4bbf]">{n}</div><div className="text-[13.5px] leading-tight text-[#5f6f8a]">{l}</div></div>)}</div>
+            <Btn onClick={() => setTab("jornadas")} className="shrink-0">Ver historial de jornadas</Btn></>)}
+          {tab === "jornadas" && (<>{back("Jornadas")}
+            <div className={card}>{jornadas.length === 0 && <p className="py-3 text-center text-[15px] text-[#5f6f8a]">Todavía no hay viajes. Inicia uno desde la pantalla Chofer.</p>}
+              {jornadas.map((j) => (<div key={j.k} className="border-t border-[#edf1f7] py-2 first:border-0"><div className="text-[16px] font-bold">{j.name} · Micro N° {j.micro}</div><div className="text-[13.5px] text-[#5f6f8a]">Ramal {RAMALES[j.ramal]} · {dirTxt(j.dir)} · {hm(j.start)}–{hm(j.end)} ({mins(j.start, j.end)} min)</div></div>))}</div>
+            {jornadas.length > 0 && <Btn tone="ghost" className="shrink-0" onClick={() => setModal({ t: "clear" })}>Borrar historial</Btn>}</>)}
+          {tab === "config" && (<>{back("Configuración")}
+            <div className={card}>
+              <Input label="Nombre de la cooperativa" value={draft} onChange={(e) => setDraft(e.target.value)} onBlur={() => setTc(true)} error={tc && draft.trim().length < 3 ? "Mínimo 3 caracteres" : ""} />
+              <div className="mb-3 flex items-center justify-between"><span className="text-[16px] font-semibold">Notificaciones</span><Toggle on={cfg.notif} label="Notificaciones" onClick={() => { setCfg({ ...cfg, notif: !cfg.notif }); say("adm", cfg.notif ? "Notificaciones desactivadas" : "Notificaciones activadas"); }} /></div>
+              <Btn className="w-full" onClick={saveCfg}>Guardar cambios</Btn>
+            </div>
+            <Btn tone="ghost" className="shrink-0 !text-[#c0332b]" onClick={() => setModal({ t: "reset" })}>Restablecer datos</Btn></>)}
+        </div>
+        <nav className="grid shrink-0 grid-cols-3 border-t border-[#e1e8f3] bg-white pb-2 pt-2 text-center text-[13.5px] font-semibold text-[#5f6f8a]">
+          {nav("inicio", "Inicio", Ic.home, ["inicio", "vehiculos", "jornadas"])}{nav("reportes", "Reportes", Ic.bars, ["reportes"])}{nav("config", "Configuración", Ic.gear, ["config"])}
+        </nav>
+      </div>
+    </Phone>
+  );
+};
+
+function App() {
+  const [drivers, setDrivers] = useStored("tt_drivers", SEED);
+  const [trip, setTrip] = useStored("tt_trip", null);
+  const [jornadas, setJornadas] = useStored("tt_jornadas", []);
+  const [profile, setProfile] = useStored("tt_profile", { name: "", phone: "" });
+  const [cfg, setCfg] = useStored("tt_cfg", CFG0);
+  const [view, setView] = useStored("tt_view", "pas");
+  const [auth, setAuth] = useStored("tt_auth", {});
+  const [toast, setToast] = useState(null);
+  const now = useNow();
+  const say = (phone, msg, tone = "ok") => setToast({ phone, msg, tone, k: Date.now() });
+  useEffect(() => { if (!toast) return; const id = setTimeout(() => setToast(null), 3000); return () => clearTimeout(id); }, [toast]);
+  const resetAll = () => { setDrivers(SEED); setTrip(null); setJornadas([]); setProfile({ name: "", phone: "" }); setCfg(CFG0); setAuth({}); };
+  const logout = () => { setAuth({}); setView("pas"); say("pas", "Sesión cerrada"); };
+  const tf = (p) => (toast && toast.phone === p ? toast : null);
+  const roles = [["pas", "Pasajero"], ["chof", "Chofer"], ["adm", "Administrador"]];
+  const show = (k) => (view === k ? "" : "hidden");
+  return (
+    <main className="flex min-h-screen flex-col items-center justify-center gap-3 bg-[#e3e9f3] px-2 py-3 font-['Nunito_Sans',system-ui,sans-serif]">
+      <div role="tablist" aria-label="Cambiar de vista" className="flex rounded-full bg-white/80 p-1 shadow-sm">
+        {roles.map(([k, t]) => <button key={k} type="button" role="tab" aria-selected={view === k} onClick={() => setView(k)} className={`rounded-full px-4 py-1.5 text-[14px] font-bold ${view === k ? "bg-[#0b4bbf] text-white" : "text-[#5f6f8a]"}`}>{t}</button>)}
+      </div>
+      <Fit>
+        <div className={show("pas")}><Pasajero drivers={drivers} trip={trip} now={now} profile={profile} setProfile={setProfile} auth={auth} setAuth={setAuth} view={view} go={setView} toast={tf("pas")} say={say} /></div>
+        <div className={show("chof")}><Chofer drivers={drivers} meId={1} trip={trip} now={now} setTrip={setTrip} setJornadas={setJornadas} onLogout={logout} toast={tf("chof")} say={say} /></div>
+        <div className={show("adm")}><Admin drivers={drivers} setDrivers={setDrivers} trip={trip} jornadas={jornadas} setJornadas={setJornadas} cfg={cfg} setCfg={setCfg} resetAll={resetAll} onLogout={logout} toast={tf("adm")} say={say} /></div>
+      </Fit>
+    </main>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script></body></html>

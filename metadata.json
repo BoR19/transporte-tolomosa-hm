@@ -1,0 +1,6 @@
+{
+  "name": "Transporte Tolomosa",
+  "description": "Plataforma comunitaria de transporte para los ramales de Tolomosa, Churquis, Pampa Redonda y Mercado Campesino.",
+  "requestFramePermissions": ["geolocation"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
