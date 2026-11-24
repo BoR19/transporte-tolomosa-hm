@@ -359,7 +359,7 @@ const AppShell = ({
       <div
         role="status"
         style={{ bottom: `calc(${lift}px + env(safe-area-inset-bottom, 0px))` }}
-        className={`fixed inset-x-4 z-50 mx-auto max-w-md rounded-[14px] px-4 py-3 text-[15px] font-bold leading-tight text-white shadow-lg md:left-auto md:right-6 md:mx-0 md:w-96 ${
+        className={`fixed inset-x-4 z-[1100] mx-auto max-w-md rounded-[14px] px-4 py-3 text-[15px] font-bold leading-tight text-white shadow-lg md:left-auto md:right-6 md:mx-0 md:w-96 ${
           toast.tone === 'err' ? 'bg-[#c0332b]' : 'bg-[#16a34a]'
         }`}
       >
@@ -584,22 +584,26 @@ const buildBusPopupHtml = (b: MapBusItem) => {
 };
 
 const TolomosaMap = ({
-  userPos,
+  userLocation,
   accuracy,
   buses,
   selectedBusId,
-  focusBusNonce,
   onSelectBus,
-  centerNonce,
+  shouldCenter,
+  onCentered,
+  busCenterTarget,
+  onBusCentered,
   visible,
 }: {
-  userPos: [number, number];
+  userLocation: [number, number];
   accuracy: number | null;
   buses: MapBusItem[];
   selectedBusId: number | null;
-  focusBusNonce: number;
   onSelectBus: (id: number) => void;
-  centerNonce: number;
+  shouldCenter: boolean;
+  onCentered: () => void;
+  busCenterTarget: { id: number; lat: number; lng: number } | null;
+  onBusCentered: () => void;
   visible: boolean;
 }) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -611,26 +615,19 @@ const TolomosaMap = ({
   >(new Map());
   const onSelectBusRef = useRef(onSelectBus);
   onSelectBusRef.current = onSelectBus;
-
-  const focusPoint = useCallback((latlng: [number, number], targetZoom?: number) => {
-    const map = mapRef.current;
-    if (!map) return;
-    const z = targetZoom ?? Math.max(map.getZoom(), 16);
-    if (window.innerWidth < 768) {
-      const pt = map.project(latlng, z);
-      const offsetPt = L.point(pt.x, pt.y + 30);
-      map.flyTo(map.unproject(offsetPt, z), z, { duration: 0.6 });
-    } else {
-      map.flyTo(latlng, z, { duration: 0.6 });
-    }
-  }, []);
+  const userLocationRef = useRef(userLocation);
+  userLocationRef.current = userLocation;
+  const onCenteredRef = useRef(onCentered);
+  onCenteredRef.current = onCentered;
+  const onBusCenteredRef = useRef(onBusCentered);
+  onBusCenteredRef.current = onBusCentered;
 
   useEffect(() => {
     const el = containerRef.current;
     if (!el || mapRef.current) return;
 
     const map = L.map(el, {
-      center: userPos,
+      center: userLocationRef.current,
       zoom: 16,
       zoomControl: false,
       attributionControl: true,
@@ -642,7 +639,7 @@ const TolomosaMap = ({
       maxZoom: 19,
     }).addTo(map);
 
-    const circle = L.circle(userPos, {
+    const circle = L.circle(userLocationRef.current, {
       radius: Math.min(Math.max(accuracy ?? 45, 25), 250),
       color: '#3a6bff',
       fillColor: '#3a6bff',
@@ -651,7 +648,7 @@ const TolomosaMap = ({
       opacity: 0.35,
     }).addTo(map);
 
-    const userMarker = L.marker(userPos, {
+    const userMarker = L.marker(userLocationRef.current, {
       icon: createUserIcon(),
       zIndexOffset: 500,
     }).addTo(map);
@@ -686,19 +683,49 @@ const TolomosaMap = ({
     return () => cancelAnimationFrame(id);
   }, [visible]);
 
+  // Actualiza posición del marcador azul sin mover la cámara
   useEffect(() => {
-    userMarkerRef.current?.setLatLng(userPos);
+    userMarkerRef.current?.setLatLng(userLocation);
     if (accuracyCircleRef.current) {
-      accuracyCircleRef.current.setLatLng(userPos);
+      accuracyCircleRef.current.setLatLng(userLocation);
       accuracyCircleRef.current.setRadius(Math.min(Math.max(accuracy ?? 45, 25), 250));
     }
-  }, [userPos, accuracy]);
+  }, [userLocation, accuracy]);
 
+  // Controlador de cámara #1: centrar una sola vez cuando el usuario toca "Mi ubicación actual"
   useEffect(() => {
-    if (centerNonce === 0) return;
-    focusPoint(userPos, 16);
-  }, [centerNonce, focusPoint, userPos]);
+    const map = mapRef.current;
+    if (!map || !shouldCenter) return;
 
+    let finished = false;
+    const finish = () => {
+      if (finished) return;
+      finished = true;
+      onCenteredRef.current();
+    };
+
+    const target = userLocationRef.current;
+    const targetZoom = 16;
+    let centerLatLng: L.LatLngExpression = target;
+    if (window.innerWidth < 768) {
+      const pt = map.project(target, targetZoom);
+      centerLatLng = map.unproject(L.point(pt.x, pt.y + 30), targetZoom);
+    }
+
+    map.stop();
+    map.once('moveend', finish);
+    map.once('zoomend', finish);
+    map.setView(centerLatLng, targetZoom, { animate: true });
+    const fallbackId = window.setTimeout(finish, 700);
+
+    return () => {
+      window.clearTimeout(fallbackId);
+      map.off('moveend', finish);
+      map.off('zoomend', finish);
+    };
+  }, [shouldCenter]);
+
+  // Actualiza marcadores de micros sin mover la cámara
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
@@ -752,14 +779,39 @@ const TolomosaMap = ({
     });
   }, [buses, selectedBusId]);
 
+  // Controlador de cámara #2: centrar una sola vez al tocar una tarjeta específica de micro en la lista
   useEffect(() => {
-    if (selectedBusId === null || focusBusNonce === 0) return;
-    const entry = busMarkersRef.current.get(selectedBusId);
-    if (!entry) return;
-    const pos = entry.marker.getLatLng();
-    focusPoint([pos.lat, pos.lng]);
-    entry.marker.openPopup();
-  }, [selectedBusId, focusBusNonce, focusPoint]);
+    const map = mapRef.current;
+    if (!map || !busCenterTarget) return;
+
+    let finished = false;
+    const finish = () => {
+      if (finished) return;
+      finished = true;
+      onBusCenteredRef.current();
+    };
+
+    const target: [number, number] = [busCenterTarget.lat, busCenterTarget.lng];
+    const targetZoom = Math.max(map.getZoom(), 16);
+    let centerLatLng: L.LatLngExpression = target;
+    if (window.innerWidth < 768) {
+      const pt = map.project(target, targetZoom);
+      centerLatLng = map.unproject(L.point(pt.x, pt.y + 30), targetZoom);
+    }
+
+    map.stop();
+    map.once('moveend', finish);
+    map.once('zoomend', finish);
+    map.setView(centerLatLng, targetZoom, { animate: true });
+    busMarkersRef.current.get(busCenterTarget.id)?.marker.openPopup();
+    const fallbackId = window.setTimeout(finish, 700);
+
+    return () => {
+      window.clearTimeout(fallbackId);
+      map.off('moveend', finish);
+      map.off('zoomend', finish);
+    };
+  }, [busCenterTarget]);
 
   return <div ref={containerRef} className="tolomosa-leaflet absolute inset-0 h-full w-full" />;
 };
@@ -1407,11 +1459,16 @@ const Pasajero = ({
   const [q, setQ] = useState('Campesino');
   const [busy, setBusy] = useState(false);
   const [modal, setModal] = useState(false);
-  const [userPos, setUserPos] = useState<[number, number]>(DEFAULT_POS);
+  const [userLocation, setUserLocation] = useState<[number, number]>(DEFAULT_POS);
   const [accuracy, setAccuracy] = useState<number | null>(null);
   const [selectedBusId, setSelectedBusId] = useState<number | null>(null);
-  const [focusBusNonce, setFocusBusNonce] = useState(0);
-  const [centerNonce, setCenterNonce] = useState(0);
+  const [shouldCenter, setShouldCenter] = useState(false);
+  const [busCenterTarget, setBusCenterTarget] = useState<{
+    id: number;
+    lat: number;
+    lng: number;
+  } | null>(null);
+  const [locating, setLocating] = useState(false);
   const [sheetSnap, setSheetSnap] = useState<SheetSnap>('min');
   const [dragOffsetPx, setDragOffsetPx] = useState<number | null>(null);
   const [isMobile, setIsMobile] = useState(() =>
@@ -1426,7 +1483,6 @@ const Pasajero = ({
   const isOnline = useOnlineStatus();
   const cachedPositionsRef = useRef<CachedBusMap>(readCachedBusPositions());
   const audioCtxRef = useRef<AudioContext | null>(null);
-  const gpsLockedRef = useRef(false);
   const dragRef = useRef<{
     startY: number;
     basePx: number;
@@ -1454,17 +1510,13 @@ const Pasajero = ({
     return () => mq.removeEventListener('change', sync);
   }, []);
 
-  // Seguimiento en tiempo real de la ubicación del pasajero
+  // Seguimiento pasivo del marcador azul del pasajero (sin recentrar la cámara automáticamente)
   useEffect(() => {
     if (!navigator.geolocation) return;
     const watchId = navigator.geolocation.watchPosition(
       (pos) => {
-        setUserPos([pos.coords.latitude, pos.coords.longitude]);
+        setUserLocation([pos.coords.latitude, pos.coords.longitude]);
         setAccuracy(pos.coords.accuracy);
-        if (!gpsLockedRef.current) {
-          gpsLockedRef.current = true;
-          setCenterNonce((c) => c + 1);
-        }
       },
       () => {
         /* Si no hay permiso aún, se mantiene la ubicación base en Tarija */
@@ -1477,7 +1529,7 @@ const Pasajero = ({
   const compute = useCallback(
     (d: string) => {
       const targetRamalIdx = RAMALES.indexOf(d.replace('Ramal ', ''));
-      const [uLat, uLng] = userPos;
+      const [uLat, uLng] = userLocation;
       const metersPerLat = 111320;
       const metersPerLng = 111320 * Math.cos((uLat * Math.PI) / 180) || 111320;
 
@@ -1554,7 +1606,7 @@ const Pasajero = ({
         .sort((a, b) => a.m - b.m)
         .slice(0, 6);
     },
-    [drivers, trip, liveLocations, now, userPos, isOnline]
+    [drivers, trip, liveLocations, now, userLocation, isOnline]
   );
 
   const list = useMemo(() => compute(q), [compute, q]);
@@ -1647,23 +1699,27 @@ const Pasajero = ({
 
   const locate = () => {
     setSelectedBusId(null);
+    setBusCenterTarget(null);
     if (!navigator.geolocation) {
-      setCenterNonce((c) => c + 1);
-      return say('pas', 'Este dispositivo no tiene GPS', 'err');
+      setShouldCenter(false);
+      return say('pas', 'Activa el GPS de tu celular para ver tu ubicación', 'err');
     }
+    if (locating) return;
+    setLocating(true);
     navigator.geolocation.getCurrentPosition(
       (pos) => {
-        gpsLockedRef.current = true;
-        setUserPos([pos.coords.latitude, pos.coords.longitude]);
+        setLocating(false);
+        setUserLocation([pos.coords.latitude, pos.coords.longitude]);
         setAccuracy(pos.coords.accuracy);
-        setCenterNonce((c) => c + 1);
+        setShouldCenter(true);
         say('pas', 'Ubicación actualizada');
       },
       () => {
-        setCenterNonce((c) => c + 1);
-        say('pas', 'No pudimos ubicarte. Activa el permiso de ubicación', 'err');
+        setLocating(false);
+        setShouldCenter(false);
+        say('pas', 'Activa el GPS de tu celular para ver tu ubicación', 'err');
       },
-      { enableHighAccuracy: true, timeout: 8000 }
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
     );
   };
 
@@ -1834,11 +1890,18 @@ const Pasajero = ({
                   icon={Ic.pin('h-6 w-6 text-[#0b4bbf]')}
                   tint="bg-[#e4edfb]"
                   label="Origen"
-                  value="Mi ubicación actual"
+                  value={locating ? 'Buscando GPS…' : 'Mi ubicación actual'}
                   right={Ic.target('h-8 w-8')}
                   onRight={locate}
                   rightLabel="Actualizar mi ubicación"
-                />
+                >
+                  <button
+                    type="button"
+                    onClick={locate}
+                    aria-label="Mi ubicación actual"
+                    className="absolute inset-0 z-10 rounded-[14px]"
+                  />
+                </Field>
                 <Field
                   icon={Ic.pin('h-6 w-6 text-[#16a34a]')}
                   tint="bg-[#e4f4ea]"
@@ -1928,7 +1991,8 @@ const Pasajero = ({
                         type="button"
                         onClick={() => {
                           setSelectedBusId(d.id);
-                          setFocusBusNonce((n) => n + 1);
+                          setShouldCenter(false);
+                          setBusCenterTarget({ id: d.id, lat: d.lat, lng: d.lng });
                           if (isMobile) setSheetSnap('min');
                           say(
                             'pas',
@@ -1982,16 +2046,18 @@ const Pasajero = ({
           {/* Columna derecha en tablet/PC: mapa interactivo Leaflet ocupando todo el alto disponible */}
           <section className="relative z-0 min-h-80 flex-1 overflow-hidden md:col-span-7 md:min-h-[520px] md:rounded-[24px] md:border md:border-[#d3e0f4] md:shadow-sm">
             <TolomosaMap
-              userPos={userPos}
+              userLocation={userLocation}
               accuracy={accuracy}
               buses={list}
               selectedBusId={selectedBusId}
-              focusBusNonce={focusBusNonce}
               onSelectBus={(id) => {
                 setSelectedBusId(id);
                 if (isMobile) setSheetSnap('min');
               }}
-              centerNonce={centerNonce}
+              shouldCenter={shouldCenter}
+              onCentered={() => setShouldCenter(false)}
+              busCenterTarget={busCenterTarget}
+              onBusCentered={() => setBusCenterTarget(null)}
               visible={view === 'pas'}
             />
 
